@@ -19,6 +19,12 @@ nav{display:flex;gap:7px;overflow:auto;padding-bottom:4px}nav button,.btn{backgr
 label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textarea{width:100%;background:#101319;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px}textarea{min-height:80px;resize:vertical}
 .actions{display:flex;gap:8px;flex-wrap:wrap}.danger{background:transparent;color:#ff7777;border:1px solid #663033}.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px}
 .exercise{cursor:pointer}.exercise:hover{border-color:#596170}.exercise h3{margin:0 0 5px}.exercise p{margin:0;color:var(--muted);font-size:13px}
+.ai-box{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:12px;background:#11151b}
+.ai-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.ai-title b{font-size:14px}.ai-status{font-size:12px;color:var(--muted)}
+.ai-note{font-size:12px;color:var(--muted);line-height:1.5;margin:8px 0 0}
+.btn.ai{background:#20242c;border-color:#4a5260;color:var(--text)}
+.btn.ai:disabled{opacity:.55;cursor:not-allowed}
 .hidden{display:none!important}.toast{position:fixed;right:20px;bottom:20px;background:#252a32;padding:12px 16px;border-radius:10px;border:1px solid var(--border);display:none;z-index:10}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid,.formgrid.three{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
 @media(max-width:480px){.grid{grid-template-columns:1fr 1fr}.app{padding:14px}.stat{font-size:22px}}
@@ -55,9 +61,19 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 
 <main id="foods" class="page hidden">
 <div class="section two"><div class="card"><h2>Add food</h2><form id="foodForm" class="form">
-<label>Name<input id="foodName" required placeholder="Ribeye Steak"></label><div class="formgrid"><label>Calories / 100g<input type="number" id="fCal" required></label><label>Protein / 100g<input type="number" id="fPro" required></label></div>
-<div class="formgrid three"><label>Fat / 100g<input type="number" id="fFat" required></label><label>Carbs / 100g<input type="number" id="fCarb" value="0"></label><label>Cost / serving<input type="number" id="fCost" value="0" step=".01"></label></div>
-<label>Serving description<input id="fServing" placeholder="100g"></label><button class="btn primary">Save food</button></form></div>
+<label>Name<input id="foodName" required placeholder="Ribeye Steak"></label>
+<div class="ai-box">
+  <div class="ai-title"><b>🤖 Don't know the nutrition?</b><span class="ai-status" id="aiStatus">No API needed</span></div>
+  <div class="formgrid">
+    <button type="button" class="btn ai" onclick="askGPTFood()">💬 Ask GPT</button>
+    <button type="button" class="btn ai" onclick="pasteGPTFood()">📋 Paste GPT Answer</button>
+  </div>
+  <p class="ai-note">Enter the food name, tap <b>Ask GPT</b>, then copy GPT's JSON answer and return here. <b>Paste GPT Answer</b> will fill the nutrition fields automatically. Your website never needs a GPT API key.</p>
+</div>
+<div class="formgrid"><label>Calories / 100g<input type="number" id="fCal" required step=".1"></label><label>Protein / 100g<input type="number" id="fPro" required step=".1"></label></div>
+<div class="formgrid three"><label>Fat / 100g<input type="number" id="fFat" required step=".1"></label><label>Carbs / 100g<input type="number" id="fCarb" value="0" step=".1"></label><label>Cost / serving<input type="number" id="fCost" value="0" step=".01" min="0"></label></div>
+<label>Serving description<input id="fServing" placeholder="100g"></label>
+<button class="btn primary">Save food</button></form></div>
 <div class="card"><h2>Your food library</h2><div id="foodList" class="list"></div></div></div>
 </main>
 
@@ -85,15 +101,7 @@ if(!deviceId){deviceId=crypto.randomUUID();localStorage.setItem("mm_device_id",d
 const today=()=>new Date().toISOString().slice(0,10);
 let foods=[],meals=[],workouts=[],weights=[],settings={calories:2200,protein:160,weightGoal:""};
 
-const seedFoods=[
-["Ribeye Steak",291,24.9,21.8,0,125,"100g"],
-["T-Bone Steak",247,24.1,16.9,0,125,"100g"],
-["Whole Egg",143,12.6,9.5,0.7,8,"1 large egg"],
-["Cooked White Rice",130,2.7,0.3,28.2,12,"100g"],
-["Butter",717,0.9,81.1,0.1,5,"10g"],
-["Chicken Breast",165,31,3.6,0,60,"100g"],
-["Ground Beef",254,26,17,0,80,"100g"]
-];
+const seedFoods=[];
 const exercises=[
 ["Leg Press","Legs","Quads, glutes, hamstrings","Set the seat so your knees are comfortable. Place feet shoulder-width apart, lower under control, then press without locking the knees.","Don't let your lower back round. Start light and learn the movement."],
 ["Calf Extension / Calf Press","Calves","Gastrocnemius, soleus","Place the balls of your feet on the platform, keep knees stable, lower your heels, then push through the toes.","Use a controlled full range; don't bounce."],
@@ -130,6 +138,62 @@ if(s.data) settings={calories:s.data.calories||2200,protein:s.data.protein||160,
 document.getElementById("syncStatus").textContent="☁ Synced";renderAll();
 }catch(e){document.getElementById("syncStatus").textContent="⚠ Setup needed";console.error(e);toast("Supabase tables are not set up yet")}
 }
+
+// No-API ChatGPT helper.
+// Ask GPT opens ChatGPT with a prefilled nutrition prompt. The website cannot read ChatGPT's
+// page directly because it is a different origin, so the user copies the JSON answer and
+// "Paste GPT Answer" imports it into the form.
+function askGPTFood(){
+  const name=(document.getElementById("foodName").value||"").trim();
+  if(!name){toast("Enter a food name first");document.getElementById("foodName").focus();return}
+  const prompt=`I am adding "${name}" to a food tracker. Give me a reasonable typical estimate for this food as commonly eaten, per 100 grams. If the exact brand or preparation is unknown, clearly treat it as an approximate generic estimate. Return ONLY valid JSON with exactly these fields and no markdown: {"calories":number,"protein":number,"fat":number,"carbs":number,"serving":"string","confidence":"low|medium|high","note":"string"}. Calories is kcal per 100g; protein, fat and carbs are grams per 100g. Do not include cost.`;
+  const url="https://chatgpt.com/?prompt="+encodeURIComponent(prompt);
+  window.open(url,"_blank","noopener");
+  document.getElementById("aiStatus").textContent="Waiting for GPT answer";
+  toast("ChatGPT opened — copy its JSON answer, then come back");
+}
+
+function applyGPTNutrition(text){
+  let cleaned=String(text||"").trim();
+  cleaned=cleaned.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"").trim();
+
+  let obj=null;
+  try{ obj=JSON.parse(cleaned) }catch(e){
+    const match=cleaned.match(/\{[\s\S]*\}/);
+    if(match){ try{ obj=JSON.parse(match[0]) }catch(e2){} }
+  }
+
+  if(!obj) throw new Error("I couldn't find valid JSON. Ask GPT to return ONLY the JSON answer, then copy it again.");
+  const nums=["calories","protein","fat","carbs"];
+  for(const k of nums){
+    if(typeof obj[k]!=="number" || !Number.isFinite(obj[k]) || obj[k]<0) throw new Error("GPT answer is missing a valid "+k+" value.");
+  }
+
+  document.getElementById("fCal").value=obj.calories;
+  document.getElementById("fPro").value=obj.protein;
+  document.getElementById("fFat").value=obj.fat;
+  document.getElementById("fCarb").value=obj.carbs;
+  if(obj.serving) document.getElementById("fServing").value=obj.serving;
+  document.getElementById("aiStatus").textContent="Filled — review before saving";
+  toast("GPT nutrition imported");
+}
+
+async function pasteGPTFood(){
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.readText) throw new Error("Clipboard access is not available here.");
+    const text=await navigator.clipboard.readText();
+    if(!text.trim()) throw new Error("Your clipboard is empty. Copy GPT's JSON answer first.");
+    applyGPTNutrition(text);
+  }catch(err){
+    console.error(err);
+    const manual=prompt("Paste GPT's JSON answer here:");
+    if(manual) {
+      try{ applyGPTNutrition(manual) }
+      catch(e){ toast(e.message) }
+    }
+  }
+}
+
 async function insert(table,obj){const {data,error}=await sb.from(table).insert({...obj,device_id:deviceId}).select().single();if(error){toast(error.message);throw error}return data}
 
 document.getElementById("foodForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_foods",{name:foodName.value,calories:+fCal.value,protein:+fPro.value,fat:+fFat.value,carbs:+fCarb.value||0,cost:+fCost.value||0,serving:fServing.value||"100g"});foods.unshift(d);e.target.reset();fCarb.value=0;fCost.value=0;renderAll();toast("Food saved")};
