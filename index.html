@@ -63,7 +63,11 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 
 <main id="gym" class="page hidden">
 <div class="section two"><div class="card"><h2>Exercise library</h2><input id="exerciseSearch" placeholder="Search machines or exercises…" oninput="renderExercises()"><br><br><div id="exerciseList" class="list"></div></div>
-<div class="card"><h2>Log workout</h2><form id="workoutForm" class="form"><label>Date<input type="date" id="workoutDate" required></label><label>Exercise<select id="workoutExercise"></select></label><div class="formgrid three"><label>Sets<input type="number" id="wSets" value="3" min="1"></label><label>Reps<input type="number" id="wReps" value="10" min="1"></label><label>Weight (kg)<input type="number" id="wWeight" value="0" min="0" step=".5"></label></div><button class="btn primary">Save workout</button></form><br><div id="workoutHistory" class="list"></div></div></div>
+<div class="card"><h2>Log workout</h2><form id="workoutForm" class="form"><label>Date<input type="date" id="workoutDate" required></label><label>Exercise<select id="workoutExercise" onchange="handleExerciseSelect()"></select></label>
+<div id="customExerciseBox" class="card" style="display:none;margin-top:10px">
+  <label>Custom exercise name<input type="text" id="customExerciseName" placeholder="e.g. Smith Machine Squat"></label>
+  <p class="muted" style="margin:8px 0 0">This exercise will be added to your exercise list for future workouts on this browser.</p>
+</div><div class="formgrid three"><label>Sets<input type="number" id="wSets" value="3" min="1"></label><label>Reps<input type="number" id="wReps" value="10" min="1"></label><label>Weight (kg)<input type="number" id="wWeight" value="0" min="0" step=".5"></label></div><button class="btn primary">Save workout</button></form><br><div id="workoutHistory" class="list"></div></div></div>
 </main>
 
 <main id="progress" class="page hidden"><div class="section two"><div class="card"><h2>Log body weight</h2><form id="weightForm" class="form"><label>Date<input type="date" id="weightDate" required></label><label>Weight (kg)<input type="number" id="bodyWeight" step=".1" required></label><button class="btn primary">Save weight</button></form></div><div class="card"><h2>Weight history</h2><div id="weightHistory" class="list"></div></div></div></main>
@@ -130,7 +134,21 @@ async function insert(table,obj){const {data,error}=await sb.from(table).insert(
 
 document.getElementById("foodForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_foods",{name:foodName.value,calories:+fCal.value,protein:+fPro.value,fat:+fFat.value,carbs:+fCarb.value||0,cost:+fCost.value||0,serving:fServing.value||"100g"});foods.unshift(d);e.target.reset();fCarb.value=0;fCost.value=0;renderAll();toast("Food saved")};
 document.getElementById("mealForm").onsubmit=async e=>{e.preventDefault();const f=foods.find(x=>x.id===mealFood.value);if(!f)return;const grams=+mealGrams.value;const qty=+mealQty.value||1;let mult=grams?grams/100:qty;const d=await insert("mm_meals",{meal_date:mealDate.value,meal_type:mealType.value,food_id:f.id,food_name:f.name,quantity:qty,grams:grams||null,calories:+(f.calories*mult).toFixed(1),protein:+(f.protein*mult).toFixed(1),fat:+(f.fat*mult).toFixed(1),carbs:+(f.carbs*mult).toFixed(1),cost:+(f.cost*mult).toFixed(2)});meals.unshift(d);renderAll();toast("Meal saved")};
-document.getElementById("workoutForm").onsubmit=async e=>{e.preventDefault();const ex=workoutExercise.value;const d=await insert("mm_workouts",{workout_date:workoutDate.value,exercise:ex,sets:+wSets.value,reps:+wReps.value,weight:+wWeight.value||0});workouts.unshift(d);renderAll();toast("Workout saved")};
+document.getElementById("workoutForm").onsubmit=async e=>{
+  e.preventDefault();
+  let ex=workoutExercise.value;
+  if(ex==="__custom__"){
+    ex=addCustomExercise();
+    if(!ex)return;
+  }
+  const d=await insert("mm_workouts",{workout_date:workoutDate.value,exercise:ex,sets:+wSets.value,reps:+wReps.value,weight:+wWeight.value||0});
+  if(!d)return;
+  workouts.unshift(d);
+  renderAll();
+  workoutExercise.value=ex;
+  handleExerciseSelect();
+  toast("Workout saved");
+};
 document.getElementById("weightForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_weights",{weight_date:weightDate.value,weight:+bodyWeight.value});weights.unshift(d);renderAll();toast("Weight saved")};
 document.getElementById("settingsForm").onsubmit=async e=>{e.preventDefault();settings={calories:+goalCal.value,protein:+goalPro.value,weightGoal:+goalWeight.value||""};const {error}=await sb.from("mm_settings").upsert({device_id:deviceId,calories:settings.calories,protein:settings.protein,weight_goal:settings.weightGoal});if(error)toast(error.message);else toast("Settings saved");renderAll()};
 
@@ -138,7 +156,52 @@ function renderAll(){renderDashboard();renderFoods();renderMeals();renderExercis
 function renderDashboard(){const ms=meals.filter(x=>x.meal_date===today());const sums=ms.reduce((a,x)=>(a.cal+=+x.calories||0,a.pro+=+x.protein||0,a.fat+=+x.fat||0,a.carb+=+x.carbs||0,a),{cal:0,pro:0,fat:0,carb:0});dCal.textContent=Math.round(sums.cal);dProtein.textContent=Math.round(sums.pro)+"g";dFat.textContent=Math.round(sums.fat)+"g";dCarbs.textContent=Math.round(sums.carb)+"g";dCalGoal.textContent="/ "+settings.calories+" kcal";dProteinGoal.textContent="/ "+settings.protein+"g";dCalBar.style.width=Math.min(100,sums.cal/settings.calories*100)+"%";dProteinBar.style.width=Math.min(100,sums.pro/settings.protein*100)+"%";todayMeals.innerHTML=ms.length?ms.map(x=>`<div class="row"><span>${x.meal_type}: ${x.food_name} × ${x.grams?x.grams+"g":x.quantity}</span><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join(""):'<div class="empty">No meals logged today.</div>';const ws=workouts.filter(x=>x.workout_date===today());todayWorkout.innerHTML=ws.length?ws.map(x=>`<div class="row"><span>${x.exercise}</span><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join(""):'<div class="empty">No workout logged today.</div>'}
 function renderFoods(){mealFood.innerHTML=foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");foodList.innerHTML=foods.length?foods.map(f=>`<div class="row"><div><b>${f.name}</b><div class="muted">${f.calories} kcal · ${f.protein}g protein · ${f.fat}g fat / 100g</div></div><span class="pill">₱${f.cost}</span></div>`).join(""):'<div class="empty">No foods yet.</div>'}
 function renderMeals(){mealHistory.innerHTML=meals.slice(0,30).map(x=>`<div class="row"><div><b>${x.food_name}</b><div class="muted">${x.meal_date} · ${x.meal_type} · ${x.grams?x.grams+"g":"×"+x.quantity}</div></div><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join("")||'<div class="empty">No meals yet.</div>'}
-function renderExercises(){const q=(exerciseSearch.value||"").toLowerCase();const arr=exercises.filter(x=>x.join(" ").toLowerCase().includes(q));exerciseList.innerHTML=arr.map(x=>`<div class="card exercise" onclick="alert('${x[0]}\\n\\nWorks: ${x[2]}\\n\\nHow to use:\\n${x[3]}\\n\\nTip:\\n${x[4]}')"><h3>${x[0]}</h3><p>${x[1]} · ${x[2]}</p></div>`).join("");workoutExercise.innerHTML=exercises.map(x=>`<option>${x[0]}</option>`).join("")}
+function getCustomExercises(){
+  try{return JSON.parse(localStorage.getItem("mm_custom_exercises")||"[]")}
+  catch(e){return[]}
+}
+function saveCustomExercises(arr){
+  localStorage.setItem("mm_custom_exercises",JSON.stringify(arr))
+}
+function handleExerciseSelect(){
+  const isCustom=workoutExercise.value==="__custom__";
+  customExerciseBox.style.display=isCustom?"block":"none";
+  if(isCustom){customExerciseName.focus()}
+}
+function addCustomExercise(){
+  const name=(customExerciseName.value||"").trim();
+  if(!name){toast("Enter a custom exercise name");customExerciseName.focus();return null}
+  const custom=getCustomExercises();
+  const existing=custom.find(x=>x.toLowerCase()===name.toLowerCase());
+  if(!existing){
+    custom.push(name);
+    saveCustomExercises(custom);
+  }
+  return name;
+}
+function renderExercises(){
+  const custom=getCustomExercises();
+  const all=[
+    ...exercises.map(x=>({name:x[0],group:x[1],muscles:x[2],how:x[3],tip:x[4],custom:false})),
+    ...custom.map(name=>({name,group:"Custom exercise",muscles:"Your selected movement",how:"Use the equipment and technique appropriate for this exercise. Start with a comfortable weight and controlled reps.",tip:"If you are unsure about the setup or technique, ask a gym staff member or trainer.",custom:true}))
+  ];
+  const q=(exerciseSearch.value||"").toLowerCase();
+  const arr=all.filter(x=>[x.name,x.group,x.muscles].join(" ").toLowerCase().includes(q));
+  exerciseList.innerHTML=arr.map(x=>{
+    const safe=[x.name,x.muscles,x.how,x.tip].map(v=>String(v).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\n/g,"\\n"));
+    return `<div class="card exercise" onclick="alert('${safe[0]}\\n\\nWorks: ${safe[1]}\\n\\nHow to use:\\n${safe[2]}\\n\\nTip:\\n${safe[3]}')"><h3>${x.name}</h3><p>${x.group} · ${x.muscles}</p></div>`;
+  }).join("")||'<div class="empty">No exercises found.</div>';
+
+  const current=workoutExercise.value;
+  workoutExercise.innerHTML=[
+    ...exercises.map(x=>`<option value="${x[0].replace(/"/g,'&quot;')}">${x[0]}</option>`),
+    ...custom.map(name=>`<option value="${name.replace(/"/g,'&quot;')}">${name}</option>`),
+    '<option value="__custom__">＋ Add custom exercise…</option>'
+  ].join("");
+  if(current && [...workoutExercise.options].some(o=>o.value===current)) workoutExercise.value=current;
+  else workoutExercise.value=exercises[0]?.[0]||"__custom__";
+  handleExerciseSelect();
+}
 function renderWorkouts(){workoutHistory.innerHTML=workouts.slice(0,30).map(x=>`<div class="row"><div><b>${x.exercise}</b><div class="muted">${x.workout_date}</div></div><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join("")||'<div class="empty">No workouts yet.</div>'}
 function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<div class="row"><span>${x.weight_date}</span><b>${x.weight} kg</b></div>`).join("")||'<div class="empty">No weight entries yet.</div>'}
 function renderSettings(){goalCal.value=settings.calories;goalPro.value=settings.protein;goalWeight.value=settings.weightGoal||""}
