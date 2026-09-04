@@ -69,16 +69,16 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 </main>
 
 <main id="meals" class="page hidden">
-<div class="section two"><div class="card"><h2>Log meal</h2>
-<form id="mealForm" class="form"><div class="formgrid"><label>Date<input type="date" id="mealDate" required></label><label>Meal<select id="mealType"><option>Meal 1</option><option>Meal 2</option><option>Snack</option></select></label></div>
+<div class="section two"><div class="card"><h2 id="mealFormTitle">Log meal</h2>
+<form id="mealForm" class="form"><input type="hidden" id="mealEditId"><div class="formgrid"><label>Date<input type="date" id="mealDate" required></label><label>Meal<select id="mealType"><option>Meal 1</option><option>Meal 2</option><option>Snack</option></select></label></div>
 <label>Food<select id="mealFood"></select></label><div class="formgrid"><label>Quantity<input type="number" id="mealQty" min=".1" step=".1" value="1"></label><label>Weight (g, optional)<input type="number" id="mealGrams" min="0" step="1" placeholder="e.g. 250"></label></div>
-<button class="btn primary">Save meal</button></form>
+<div class="actions"><button class="btn primary" id="mealSubmitBtn">Save meal</button><button class="btn" id="mealCancelBtn" type="button" style="display:none" onclick="cancelMealEdit()">Cancel</button></div></form>
 <p class="muted">For steaks with unknown weight, use quantity and leave grams blank. You can edit the food later when you know its weight.</p></div>
 <div class="card"><h2>Recent meals</h2><div id="mealHistory" class="list"></div></div></div>
 </main>
 
 <main id="foods" class="page hidden">
-<div class="section two"><div class="card"><h2>Add food</h2><form id="foodForm" class="form">
+<div class="section two"><div class="card"><h2 id="foodFormTitle">Add food</h2><form id="foodForm" class="form"><input type="hidden" id="foodEditId">
 <label>Name<input id="foodName" required placeholder="Ribeye Steak"></label>
 <div class="ai-box">
   <div class="ai-title"><b>🤖 Don't know the nutrition?</b><span class="ai-status" id="aiStatus">No API needed</span></div>
@@ -91,20 +91,20 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 <div class="formgrid"><label>Calories / 100g<input type="number" id="fCal" required step=".1"></label><label>Protein / 100g<input type="number" id="fPro" required step=".1"></label></div>
 <div class="formgrid three"><label>Fat / 100g<input type="number" id="fFat" required step=".1"></label><label>Carbs / 100g<input type="number" id="fCarb" value="0" step=".1"></label><label>Cost / serving<input type="number" id="fCost" value="0" step=".01" min="0"></label></div>
 <label>Serving description<input id="fServing" placeholder="100g"></label>
-<button class="btn primary">Save food</button></form></div>
+<div class="actions"><button class="btn primary" id="foodSubmitBtn">Save food</button><button class="btn" id="foodCancelBtn" type="button" style="display:none" onclick="cancelFoodEdit()">Cancel</button></div></form></div>
 <div class="card"><h2>Your food library</h2><div id="foodList" class="list"></div></div></div>
 </main>
 
 <main id="gym" class="page hidden">
 <div class="section two"><div class="card"><h2>Exercise library</h2><input id="exerciseSearch" placeholder="Search machines or exercises…" oninput="renderExercises()"><br><br><div id="exerciseList" class="list"></div></div>
-<div class="card"><h2>Log workout</h2><form id="workoutForm" class="form"><label>Date<input type="date" id="workoutDate" required></label><label>Exercise<select id="workoutExercise" onchange="handleExerciseSelect()"></select></label>
+<div class="card"><h2 id="workoutFormTitle">Log workout</h2><form id="workoutForm" class="form"><input type="hidden" id="workoutEditId"><label>Date<input type="date" id="workoutDate" required></label><label>Exercise<select id="workoutExercise" onchange="handleExerciseSelect()"></select></label>
 <div id="customExerciseBox" class="card" style="display:none;margin-top:10px">
   <label>Custom exercise name<input type="text" id="customExerciseName" placeholder="e.g. Smith Machine Squat"></label>
   <p class="muted" style="margin:8px 0 0">This exercise will be added to your exercise list for future workouts on this browser.</p>
-</div><div class="formgrid three"><label>Sets<input type="number" id="wSets" value="3" min="1"></label><label>Reps<input type="number" id="wReps" value="10" min="1"></label><label>Weight (kg)<input type="number" id="wWeight" value="0" min="0" step=".5"></label></div><button class="btn primary">Save workout</button></form><br><div id="workoutHistory" class="list"></div></div></div>
+</div><div class="formgrid three"><label>Sets<input type="number" id="wSets" value="3" min="1"></label><label>Reps<input type="number" id="wReps" value="10" min="1"></label><label>Weight (kg)<input type="number" id="wWeight" value="0" min="0" step="any"></label></div><div class="actions"><button class="btn primary" id="workoutSubmitBtn">Save workout</button><button class="btn" id="workoutCancelBtn" type="button" style="display:none" onclick="cancelWorkoutEdit()">Cancel</button></div></form><br><div id="workoutHistory" class="list"></div></div></div>
 </main>
 
-<main id="progress" class="page hidden"><div class="section two"><div class="card"><h2>Log body weight</h2><form id="weightForm" class="form"><label>Date<input type="date" id="weightDate" required></label><label>Weight (kg)<input type="number" id="bodyWeight" step=".1" required></label><button class="btn primary">Save weight</button></form></div><div class="card"><h2>Weight history</h2><div id="weightHistory" class="list"></div></div></div></main>
+<main id="progress" class="page hidden"><div class="section two"><div class="card"><h2 id="weightFormTitle">Log body weight</h2><form id="weightForm" class="form"><input type="hidden" id="weightEditId"><label>Date<input type="date" id="weightDate" required></label><label>Weight (kg)<input type="number" id="bodyWeight" step="any" required></label><div class="actions"><button class="btn primary" id="weightSubmitBtn">Save weight</button><button class="btn" id="weightCancelBtn" type="button" style="display:none" onclick="cancelWeightEdit()">Cancel</button></div></form></div><div class="card"><h2>Weight history</h2><div id="weightHistory" class="list"></div></div></div></main>
 
 <main id="settings" class="page hidden">
 <div class="section"><div class="card">
@@ -112,7 +112,7 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 <p class="muted">Currently using: <b id="currentUserLabel">—</b></p>
 <button class="btn" type="button" onclick="showLogin()">Switch user</button>
 </div></div>
-<div class="section card"><h2>Goals & preferences</h2><form id="settingsForm" class="form"><div class="formgrid three"><label>Calories / day<input type="number" id="goalCal" min="1"></label><label>Protein / day (g)<input type="number" id="goalPro" min="1"></label><label>Weight goal (kg)<input type="number" id="goalWeight" step=".1"></label></div><button class="btn primary">Save settings</button></form><br><button class="btn" onclick="exportData()">Export backup</button> <button class="btn" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)"></div></main>
+<div class="section card"><h2>Goals & preferences</h2><form id="settingsForm" class="form"><div class="formgrid three"><label>Calories / day<input type="number" id="goalCal" min="1"></label><label>Protein / day (g)<input type="number" id="goalPro" min="1"></label><label>Weight goal (kg)<input type="number" id="goalWeight" step="any"></label></div><button class="btn primary">Save settings</button></form><br><button class="btn" onclick="exportData()">Export backup</button> <button class="btn" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)"></div></main>
 </div>
 <div id="toast" class="toast"></div>
 
@@ -147,7 +147,7 @@ const exercises=[
 function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2200)}
 function showPage(p){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(p).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===p));renderAll()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
-document.getElementById("mealDate").value=today();document.getElementById("workoutDate").value=today();document.getElementById("weightDate").value=today();
+document.getElementById("mealDate").value=today();document.getElementById("workoutDate").value=today();document.getElementById("weightDate").value=today();setFormMode("food",false,"Add food","Edit food","Save food","Update food");setFormMode("meal",false,"Log meal","Edit meal","Save meal","Update meal");setFormMode("workout",false,"Log workout","Edit workout","Save workout","Update workout");setFormMode("weight",false,"Log body weight","Edit body weight","Save weight","Update weight");
 
 
 function normalizeUserName(name){return String(name||"").trim().replace(/\s+/g," ").toLowerCase()}
@@ -294,32 +294,77 @@ async function pasteGPTFood(){
   }
 }
 
+function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function setFormMode(prefix, editing, titleAdd, titleEdit, saveAdd, saveEdit){
+  const title=document.getElementById(prefix+"FormTitle"), btn=document.getElementById(prefix+"SubmitBtn"), cancel=document.getElementById(prefix+"CancelBtn");
+  if(title) title.textContent=editing?titleEdit:titleAdd;
+  if(btn) btn.textContent=editing?saveEdit:saveAdd;
+  if(cancel) cancel.style.display=editing?"inline-flex":"none";
+}
 async function insert(table,obj){const {data,error}=await sb.from(table).insert({...obj,device_id:deviceId}).select().single();if(error){toast(error.message);throw error}return data}
+async function updateRow(table,id,obj){const {data,error}=await sb.from(table).update(obj).eq("id",id).eq("device_id",deviceId).select().single();if(error){toast(error.message);throw error}return data}
+async function deleteRow(table,id,label){if(!confirm("Delete this "+label+"? This cannot be undone."))return false;const {error}=await sb.from(table).delete().eq("id",id).eq("device_id",deviceId);if(error){toast(error.message);return false}return true}
 
-document.getElementById("foodForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_foods",{name:foodName.value,calories:+fCal.value,protein:+fPro.value,fat:+fFat.value,carbs:+fCarb.value||0,cost:+fCost.value||0,serving:fServing.value||"100g"});foods.unshift(d);e.target.reset();fCarb.value=0;fCost.value=0;renderAll();toast("Food saved")};
-document.getElementById("mealForm").onsubmit=async e=>{e.preventDefault();const f=foods.find(x=>x.id===mealFood.value);if(!f)return;const grams=+mealGrams.value;const qty=+mealQty.value||1;let mult=grams?grams/100:qty;const d=await insert("mm_meals",{meal_date:mealDate.value,meal_type:mealType.value,food_id:f.id,food_name:f.name,quantity:qty,grams:grams||null,calories:+(f.calories*mult).toFixed(1),protein:+(f.protein*mult).toFixed(1),fat:+(f.fat*mult).toFixed(1),carbs:+(f.carbs*mult).toFixed(1),cost:+(f.cost*mult).toFixed(2)});meals.unshift(d);renderAll();toast("Meal saved")};
+function resetFoodForm(){document.getElementById("foodForm").reset();fCarb.value=0;fCost.value=0;foodEditId.value="";setFormMode("food",false,"Add food","Edit food","Save food","Update food")}
+function cancelFoodEdit(){resetFoodForm();toast("Food edit cancelled")}
+function editFood(id){const f=foods.find(x=>String(x.id)===String(id));if(!f)return;foodEditId.value=f.id;foodName.value=f.name;fCal.value=f.calories;fPro.value=f.protein;fFat.value=f.fat;fCarb.value=f.carbs??0;fCost.value=f.cost??0;fServing.value=f.serving||"100g";setFormMode("food",true,"Add food","Edit food","Save food","Update food");document.getElementById("foods").scrollIntoView({behavior:"smooth",block:"start"})}
+async function removeFood(id){const f=foods.find(x=>String(x.id)===String(id));if(!f)return;if(!await deleteRow("mm_foods",id,"food"))return;foods=foods.filter(x=>String(x.id)!==String(id));if(String(foodEditId.value)===String(id))resetFoodForm();renderAll();toast("Food deleted")}
+
+function resetMealForm(){document.getElementById("mealForm").reset();mealDate.value=today();mealQty.value=1;mealGrams.value="";mealEditId.value="";setFormMode("meal",false,"Log meal","Edit meal","Save meal","Update meal")}
+function cancelMealEdit(){resetMealForm();toast("Meal edit cancelled")}
+function editMeal(id){const m=meals.find(x=>String(x.id)===String(id));if(!m)return;mealEditId.value=m.id;mealDate.value=m.meal_date;mealType.value=m.meal_type;mealFood.value=m.food_id;mealQty.value=m.quantity??1;mealGrams.value=m.grams??"";setFormMode("meal",true,"Log meal","Edit meal","Save meal","Update meal");showPage("meals");window.scrollTo({top:0,behavior:"smooth"})}
+async function removeMeal(id){if(!await deleteRow("mm_meals",id,"meal"))return;meals=meals.filter(x=>String(x.id)!==String(id));if(String(mealEditId.value)===String(id))resetMealForm();renderAll();toast("Meal deleted")}
+
+function resetWorkoutForm(){document.getElementById("workoutForm").reset();workoutDate.value=today();wSets.value=3;wReps.value=10;wWeight.value=0;workoutEditId.value="";setFormMode("workout",false,"Log workout","Edit workout","Save workout","Update workout");renderExercises()}
+function cancelWorkoutEdit(){resetWorkoutForm();toast("Workout edit cancelled")}
+function editWorkout(id){const w=workouts.find(x=>String(x.id)===String(id));if(!w)return;workoutEditId.value=w.id;workoutDate.value=w.workout_date;workoutExercise.value=w.exercise;wSets.value=w.sets;wReps.value=w.reps;wWeight.value=w.weight??0;setFormMode("workout",true,"Log workout","Edit workout","Save workout","Update workout");showPage("gym");handleExerciseSelect();window.scrollTo({top:0,behavior:"smooth"})}
+async function removeWorkout(id){if(!await deleteRow("mm_workouts",id,"workout"))return;workouts=workouts.filter(x=>String(x.id)!==String(id));if(String(workoutEditId.value)===String(id))resetWorkoutForm();renderAll();toast("Workout deleted")}
+
+function resetWeightForm(){document.getElementById("weightForm").reset();weightDate.value=today();weightEditId.value="";setFormMode("weight",false,"Log body weight","Edit body weight","Save weight","Update weight")}
+function cancelWeightEdit(){resetWeightForm();toast("Weight edit cancelled")}
+function editWeight(id){const w=weights.find(x=>String(x.id)===String(id));if(!w)return;weightEditId.value=w.id;weightDate.value=w.weight_date;bodyWeight.value=w.weight;setFormMode("weight",true,"Log body weight","Edit body weight","Save weight","Update weight");showPage("progress");window.scrollTo({top:0,behavior:"smooth"})}
+async function removeWeight(id){if(!await deleteRow("mm_weights",id,"weight entry"))return;weights=weights.filter(x=>String(x.id)!==String(id));if(String(weightEditId.value)===String(id))resetWeightForm();renderAll();toast("Weight entry deleted")}
+
+
+document.getElementById("foodForm").onsubmit=async e=>{
+  e.preventDefault();
+  const id=foodEditId.value;
+  const obj={name:foodName.value.trim(),calories:+fCal.value,protein:+fPro.value,fat:+fFat.value,carbs:+fCarb.value||0,cost:+fCost.value||0,serving:fServing.value||"100g"};
+  if(id){const d=await updateRow("mm_foods",id,obj);const i=foods.findIndex(x=>String(x.id)===String(id));if(i>=0)foods[i]=d;resetFoodForm();renderAll();toast("Food updated")}else{const d=await insert("mm_foods",obj);foods.unshift(d);resetFoodForm();renderAll();toast("Food saved")}
+};
+
+document.getElementById("mealForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=foods.find(x=>String(x.id)===String(mealFood.value));if(!f)return;
+  const grams=+mealGrams.value;const qty=+mealQty.value||1;let mult=grams?grams/100:qty;
+  const obj={meal_date:mealDate.value,meal_type:mealType.value,food_id:f.id,food_name:f.name,quantity:qty,grams:grams||null,calories:+(f.calories*mult).toFixed(1),protein:+(f.protein*mult).toFixed(1),fat:+(f.fat*mult).toFixed(1),carbs:+(f.carbs*mult).toFixed(1),cost:+(f.cost*mult).toFixed(2)};
+  const id=mealEditId.value;
+  if(id){const d=await updateRow("mm_meals",id,obj);const i=meals.findIndex(x=>String(x.id)===String(id));if(i>=0)meals[i]=d;resetMealForm();renderAll();toast("Meal updated")}else{const d=await insert("mm_meals",obj);meals.unshift(d);renderAll();toast("Meal saved")}
+};
+
 document.getElementById("workoutForm").onsubmit=async e=>{
   e.preventDefault();
   let ex=workoutExercise.value;
-  if(ex==="__custom__"){
-    ex=addCustomExercise();
-    if(!ex)return;
-  }
-  const d=await insert("mm_workouts",{workout_date:workoutDate.value,exercise:ex,sets:+wSets.value,reps:+wReps.value,weight:+wWeight.value||0});
-  if(!d)return;
-  workouts.unshift(d);
-  renderAll();
-  workoutExercise.value=ex;
-  handleExerciseSelect();
-  toast("Workout saved");
+  if(ex==="__custom__"){ex=addCustomExercise();if(!ex)return}
+  const obj={workout_date:workoutDate.value,exercise:ex,sets:+wSets.value,reps:+wReps.value,weight:+wWeight.value||0};
+  const id=workoutEditId.value;
+  if(id){const d=await updateRow("mm_workouts",id,obj);const i=workouts.findIndex(x=>String(x.id)===String(id));if(i>=0)workouts[i]=d;resetWorkoutForm();renderAll();toast("Workout updated")}
+  else{const d=await insert("mm_workouts",obj);if(!d)return;workouts.unshift(d);renderAll();workoutExercise.value=ex;handleExerciseSelect();toast("Workout saved")}
 };
-document.getElementById("weightForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_weights",{weight_date:weightDate.value,weight:+bodyWeight.value});weights.unshift(d);renderAll();toast("Weight saved")};
+
+document.getElementById("weightForm").onsubmit=async e=>{
+  e.preventDefault();
+  const obj={weight_date:weightDate.value,weight:+bodyWeight.value};const id=weightEditId.value;
+  if(id){const d=await updateRow("mm_weights",id,obj);const i=weights.findIndex(x=>String(x.id)===String(id));if(i>=0)weights[i]=d;resetWeightForm();renderAll();toast("Weight updated")}
+  else{const d=await insert("mm_weights",obj);weights.unshift(d);renderAll();toast("Weight saved")}
+};
+
 document.getElementById("settingsForm").onsubmit=async e=>{e.preventDefault();settings={calories:+goalCal.value,protein:+goalPro.value,weightGoal:+goalWeight.value||""};const {error}=await sb.from("mm_settings").upsert({device_id:deviceId,calories:settings.calories,protein:settings.protein,weight_goal:settings.weightGoal});if(error)toast(error.message);else toast("Settings saved");renderAll()};
 
 function renderAll(){renderDashboard();renderFoods();renderMeals();renderExercises();renderWorkouts();renderWeights();renderSettings()}
-function renderDashboard(){const ms=meals.filter(x=>x.meal_date===today());const sums=ms.reduce((a,x)=>(a.cal+=+x.calories||0,a.pro+=+x.protein||0,a.fat+=+x.fat||0,a.carb+=+x.carbs||0,a),{cal:0,pro:0,fat:0,carb:0});dCal.textContent=Math.round(sums.cal);dProtein.textContent=Math.round(sums.pro)+"g";dFat.textContent=Math.round(sums.fat)+"g";dCarbs.textContent=Math.round(sums.carb)+"g";dCalGoal.textContent="/ "+settings.calories+" kcal";dProteinGoal.textContent="/ "+settings.protein+"g";dCalBar.style.width=Math.min(100,sums.cal/settings.calories*100)+"%";dProteinBar.style.width=Math.min(100,sums.pro/settings.protein*100)+"%";todayMeals.innerHTML=ms.length?ms.map(x=>`<div class="row"><span>${x.meal_type}: ${x.food_name} × ${x.grams?x.grams+"g":x.quantity}</span><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join(""):'<div class="empty">No meals logged today.</div>';const ws=workouts.filter(x=>x.workout_date===today());todayWorkout.innerHTML=ws.length?ws.map(x=>`<div class="row"><span>${x.exercise}</span><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join(""):'<div class="empty">No workout logged today.</div>'}
-function renderFoods(){mealFood.innerHTML=foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");foodList.innerHTML=foods.length?foods.map(f=>`<div class="row"><div><b>${f.name}</b><div class="muted">${f.calories} kcal · ${f.protein}g protein · ${f.fat}g fat / 100g</div></div><span class="pill">₱${f.cost}</span></div>`).join(""):'<div class="empty">No foods yet.</div>'}
-function renderMeals(){mealHistory.innerHTML=meals.slice(0,30).map(x=>`<div class="row"><div><b>${x.food_name}</b><div class="muted">${x.meal_date} · ${x.meal_type} · ${x.grams?x.grams+"g":"×"+x.quantity}</div></div><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join("")||'<div class="empty">No meals yet.</div>'}
+function renderDashboard(){const ms=meals.filter(x=>x.meal_date===today());const sums=ms.reduce((a,x)=>(a.cal+=+x.calories||0,a.pro+=+x.protein||0,a.fat+=+x.fat||0,a.carb+=+x.carbs||0,a),{cal:0,pro:0,fat:0,carb:0});dCal.textContent=Math.round(sums.cal);dProtein.textContent=Math.round(sums.pro)+"g";dFat.textContent=Math.round(sums.fat)+"g";dCarbs.textContent=Math.round(sums.carb)+"g";dCalGoal.textContent="/ "+settings.calories+" kcal";dProteinGoal.textContent="/ "+settings.protein+"g";dCalBar.style.width=Math.min(100,sums.cal/settings.calories*100)+"%";dProteinBar.style.width=Math.min(100,sums.pro/settings.protein*100)+"%";todayMeals.innerHTML=ms.length?ms.map(x=>`<div class="row"><div><span>${esc(x.meal_type)}: ${esc(x.food_name)} × ${x.grams?x.grams+"g":x.quantity}</span></div><div class="actions"><span class="pill">${Math.round(x.calories)} kcal</span><button class="btn" type="button" onclick="editMeal('${x.id}')">Edit</button><button class="btn danger" type="button" onclick="removeMeal('${x.id}')">Delete</button></div></div>`).join(""):'<div class="empty">No meals logged today.</div>';const ws=workouts.filter(x=>x.workout_date===today());todayWorkout.innerHTML=ws.length?ws.map(x=>`<div class="row"><span>${esc(x.exercise)}</span><div class="actions"><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span><button class="btn" type="button" onclick="editWorkout('${x.id}')">Edit</button><button class="btn danger" type="button" onclick="removeWorkout('${x.id}')">Delete</button></div></div>`).join(""):'<div class="empty">No workout logged today.</div>'}
+function renderFoods(){mealFood.innerHTML=foods.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join("");foodList.innerHTML=foods.length?foods.map(f=>`<div class="row"><div><b>${esc(f.name)}</b><div class="muted">${f.calories} kcal · ${f.protein}g protein · ${f.fat}g fat / 100g</div></div><div class="actions"><span class="pill">₱${f.cost}</span><button class="btn" type="button" onclick="editFood('${f.id}')">Edit</button><button class="btn danger" type="button" onclick="removeFood('${f.id}')">Delete</button></div></div>`).join(""):'<div class="empty">No foods yet.</div>'}
+function renderMeals(){mealHistory.innerHTML=meals.slice(0,30).map(x=>`<div class="row"><div><b>${esc(x.food_name)}</b><div class="muted">${esc(x.meal_date)} · ${esc(x.meal_type)} · ${x.grams?x.grams+"g":"×"+x.quantity}</div></div><div class="actions"><span class="pill">${Math.round(x.calories)} kcal</span><button class="btn" type="button" onclick="editMeal('${x.id}')">Edit</button><button class="btn danger" type="button" onclick="removeMeal('${x.id}')">Delete</button></div></div>`).join("")||'<div class="empty">No meals yet.</div>'}
 function getCustomExercises(){
   try{return JSON.parse(localStorage.getItem("mm_custom_exercises")||"[]")}
   catch(e){return[]}
@@ -337,11 +382,22 @@ function addCustomExercise(){
   if(!name){toast("Enter a custom exercise name");customExerciseName.focus();return null}
   const custom=getCustomExercises();
   const existing=custom.find(x=>x.toLowerCase()===name.toLowerCase());
-  if(!existing){
-    custom.push(name);
-    saveCustomExercises(custom);
-  }
+  if(!existing){custom.push(name);saveCustomExercises(custom);}
   return name;
+}
+function editCustomExercise(index){
+  const custom=getCustomExercises();if(index<0||index>=custom.length)return;
+  const oldName=custom[index];const name=prompt("Edit custom exercise name:",oldName);if(name===null)return;
+  const cleaned=name.trim();if(!cleaned){toast("Exercise name cannot be empty");return}
+  if(custom.some((x,i)=>i!==index&&x.toLowerCase()===cleaned.toLowerCase())){toast("That custom exercise already exists");return}
+  custom[index]=cleaned;saveCustomExercises(custom);
+  // Keep existing workout history intact; only future exercise selection uses the new name.
+  renderAll();toast("Custom exercise updated");
+}
+function deleteCustomExercise(index){
+  const custom=getCustomExercises();if(index<0||index>=custom.length)return;
+  if(!confirm("Delete this custom exercise from your exercise library? Existing workout records will stay."))return;
+  custom.splice(index,1);saveCustomExercises(custom);renderAll();toast("Custom exercise deleted");
 }
 function renderExercises(){
   const custom=getCustomExercises();
@@ -353,7 +409,8 @@ function renderExercises(){
   const arr=all.filter(x=>[x.name,x.group,x.muscles].join(" ").toLowerCase().includes(q));
   exerciseList.innerHTML=arr.map(x=>{
     const safe=[x.name,x.muscles,x.how,x.tip].map(v=>String(v).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\n/g,"\\n"));
-    return `<div class="card exercise" onclick="alert('${safe[0]}\\n\\nWorks: ${safe[1]}\\n\\nHow to use:\\n${safe[2]}\\n\\nTip:\\n${safe[3]}')"><h3>${x.name}</h3><p>${x.group} · ${x.muscles}</p></div>`;
+    const buttons=x.custom?`<div class="actions" onclick="event.stopPropagation()"><button class="btn" type="button" onclick="editCustomExercise(${custom.indexOf(x.name)})">Edit</button><button class="btn danger" type="button" onclick="deleteCustomExercise(${custom.indexOf(x.name)})">Delete</button></div>`:"";
+    return `<div class="card exercise" onclick="alert('${safe[0]}\\n\\nWorks: ${safe[1]}\\n\\nHow to use:\\n${safe[2]}\\n\\nTip:\\n${safe[3]}')"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><h3>${esc(x.name)}</h3><p>${esc(x.group)} · ${esc(x.muscles)}</p></div>${buttons}</div></div>`;
   }).join("")||'<div class="empty">No exercises found.</div>';
 
   const current=workoutExercise.value;
@@ -366,11 +423,25 @@ function renderExercises(){
   else workoutExercise.value=exercises[0]?.[0]||"__custom__";
   handleExerciseSelect();
 }
-function renderWorkouts(){workoutHistory.innerHTML=workouts.slice(0,30).map(x=>`<div class="row"><div><b>${x.exercise}</b><div class="muted">${x.workout_date}</div></div><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join("")||'<div class="empty">No workouts yet.</div>'}
-function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<div class="row"><span>${x.weight_date}</span><b>${x.weight} kg</b></div>`).join("")||'<div class="empty">No weight entries yet.</div>'}
+function renderWorkouts(){workoutHistory.innerHTML=workouts.slice(0,30).map(x=>`<div class="row"><div><b>${esc(x.exercise)}</b><div class="muted">${esc(x.workout_date)}</div></div><div class="actions"><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span><button class="btn" type="button" onclick="editWorkout('${x.id}')">Edit</button><button class="btn danger" type="button" onclick="removeWorkout('${x.id}')">Delete</button></div></div>`).join("")||'<div class="empty">No workouts yet.</div>'}
+function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<div class="row"><span>${esc(x.weight_date)}</span><div class="actions"><b>${x.weight} kg</b><button class="btn" type="button" onclick="editWeight('${x.id}')">Edit</button><button class="btn danger" type="button" onclick="removeWeight('${x.id}')">Delete</button></div></div>`).join("")||'<div class="empty">No weight entries yet.</div>'}
 function renderSettings(){goalCal.value=settings.calories;goalPro.value=settings.protein;goalWeight.value=settings.weightGoal||""}
 function exportData(){const blob=new Blob([JSON.stringify({foods,meals,workouts,weights,settings},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meat-muscle-backup.json";a.click();URL.revokeObjectURL(a.href)}
-async function importData(e){const file=e.target.files[0];if(!file)return;const d=JSON.parse(await file.text());for(const f of d.foods||[])await insert("mm_foods",f);toast("Backup imported. Refreshing…");setTimeout(()=>location.reload(),800)}
+async function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  try{
+    const d=JSON.parse(await file.text());
+    for(const table of ["mm_foods","mm_meals","mm_workouts","mm_weights"]){
+      for(const row of d[table.replace("mm_","")]||[]){
+        const copy={...row};delete copy.device_id;
+        if(copy.id){const {data,error}=await sb.from(table).upsert({...copy,device_id:deviceId},{onConflict:"id"}).select().maybeSingle();if(error)throw error}
+        else await insert(table,copy);
+      }
+    }
+    if(d.settings){const {error}=await sb.from("mm_settings").upsert({device_id:deviceId,calories:+d.settings.calories||2200,protein:+d.settings.protein||160,weight_goal:d.settings.weightGoal||""});if(error)throw error}
+    toast("Backup imported. Refreshing…");setTimeout(()=>location.reload(),800);
+  }catch(err){console.error(err);toast("Import failed: "+(err.message||"Invalid backup"))}
+}
 currentUserKey=normalizeUserName(localStorage.getItem("mm_user_key")||currentUserName);
 if(currentUserKey){
   deviceId=currentUserKey;
