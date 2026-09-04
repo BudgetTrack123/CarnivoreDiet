@@ -193,6 +193,27 @@ function showLogin(){
   setTimeout(()=>document.getElementById("loginName").focus(),50);
 }
 
+// Login form handler. This was missing in the previous version, so clicking
+// Continue submitted the form normally instead of calling loginAs().
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const input=document.getElementById("loginName");
+  const errorEl=document.getElementById("loginError");
+  const button=e.submitter || document.querySelector('#loginForm button[type="submit"]');
+  const name=(input.value||"").trim();
+  errorEl.textContent="";
+  if(!name){errorEl.textContent="Please enter your name.";input.focus();return}
+  if(button) { button.disabled=true; button.textContent="Connecting…"; }
+  try{
+    await loginAs(name);
+  }catch(err){
+    console.error("Meat & Muscle login error:",err);
+    errorEl.textContent=err?.message || "Unable to log in. Check your Supabase setup and try again.";
+  }finally{
+    if(button) { button.disabled=false; button.textContent="Continue"; }
+  }
+});
+
 function logout(){
   currentUserName="";
   currentUserKey="";
