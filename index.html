@@ -28,9 +28,27 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 .hidden{display:none!important}.toast{position:fixed;right:20px;bottom:20px;background:#252a32;padding:12px 16px;border-radius:10px;border:1px solid var(--border);display:none;z-index:10}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid,.formgrid.three{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
 @media(max-width:480px){.grid{grid-template-columns:1fr 1fr}.app{padding:14px}.stat{font-size:22px}}
+
+.login-screen{position:fixed;inset:0;background:#090b0f;display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.login-card{width:min(420px,100%);background:#11151b;border:1px solid var(--border);border-radius:18px;padding:28px;box-shadow:0 20px 60px #0008}
+.login-card h1{margin:0 0 8px;font-size:28px}.login-card p{color:var(--muted);margin:0 0 22px;line-height:1.5}
+.login-card input{width:100%;box-sizing:border-box;font-size:18px;padding:13px 14px;margin-bottom:12px}
+.login-card .btn{width:100%}.login-error{color:#ff8f8f;font-size:13px;margin-top:10px;min-height:18px}
 </style>
 </head>
 <body>
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <h1>🥩 Meat & Muscle</h1>
+    <p>Enter your name to access your tracker. Capitalization doesn't matter — <b>Leif</b> and <b>leif</b> use the same profile.</p>
+    <form id="loginForm" class="form">
+      <input id="loginName" autocomplete="name" maxlength="40" placeholder="Enter your name" required>
+      <button class="btn primary" type="submit">Continue</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
+  </div>
+</div>
+
 <div class="app">
 <header><div class="brand">MEAT <span>&</span> MUSCLE</div><div class="muted" id="syncStatus">Connecting…</div></header>
 <nav id="nav">
@@ -88,7 +106,13 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 
 <main id="progress" class="page hidden"><div class="section two"><div class="card"><h2>Log body weight</h2><form id="weightForm" class="form"><label>Date<input type="date" id="weightDate" required></label><label>Weight (kg)<input type="number" id="bodyWeight" step=".1" required></label><button class="btn primary">Save weight</button></form></div><div class="card"><h2>Weight history</h2><div id="weightHistory" class="list"></div></div></div></main>
 
-<main id="settings" class="page hidden"><div class="section card"><h2>Goals & preferences</h2><form id="settingsForm" class="form"><div class="formgrid three"><label>Calories / day<input type="number" id="goalCal" min="1"></label><label>Protein / day (g)<input type="number" id="goalPro" min="1"></label><label>Weight goal (kg)<input type="number" id="goalWeight" step=".1"></label></div><button class="btn primary">Save settings</button></form><br><button class="btn" onclick="exportData()">Export backup</button> <button class="btn" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)"></div></main>
+<main id="settings" class="page hidden">
+<div class="section"><div class="card">
+<h2>Profile</h2>
+<p class="muted">Currently using: <b id="currentUserLabel">—</b></p>
+<button class="btn" type="button" onclick="showLogin()">Switch user</button>
+</div></div>
+<div class="section card"><h2>Goals & preferences</h2><form id="settingsForm" class="form"><div class="formgrid three"><label>Calories / day<input type="number" id="goalCal" min="1"></label><label>Protein / day (g)<input type="number" id="goalPro" min="1"></label><label>Weight goal (kg)<input type="number" id="goalWeight" step=".1"></label></div><button class="btn primary">Save settings</button></form><br><button class="btn" onclick="exportData()">Export backup</button> <button class="btn" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)"></div></main>
 </div>
 <div id="toast" class="toast"></div>
 
@@ -96,7 +120,10 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 const SUPABASE_URL="https://quhmjimnoojjgxovivsh.supabase.co";
 const SUPABASE_KEY="sb_publishable_4R7T-q9Y6w5Ni7sCAJRyCA_NVel8sUu";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let deviceId=localStorage.getItem("mm_device_id");
+let deviceId=localStorage.getItem("mm_device_id"); if(!deviceId){deviceId=crypto.randomUUID();localStorage.setItem("mm_device_id",deviceId)}
+let currentUserName=(localStorage.getItem("mm_user_name")||"").trim();
+let currentUserKey=currentUserName.toLowerCase();
+
 if(!deviceId){deviceId=crypto.randomUUID();localStorage.setItem("mm_device_id",deviceId)}
 const today=()=>new Date().toISOString().slice(0,10);
 let foods=[],meals=[],workouts=[],weights=[],settings={calories:2200,protein:160,weightGoal:""};
@@ -121,6 +148,49 @@ function toast(s){const t=document.getElementById("toast");t.textContent=s;t.sty
 function showPage(p){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(p).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===p));renderAll()}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 document.getElementById("mealDate").value=today();document.getElementById("workoutDate").value=today();document.getElementById("weightDate").value=today();
+
+
+function normalizeUserName(name){return String(name||"").trim().replace(/\s+/g," ").toLowerCase()}
+function displayName(name){return String(name||"").trim().replace(/\s+/g," ")}
+
+async function loginAs(name){
+  const clean=displayName(name), key=normalizeUserName(clean);
+  if(!key) throw new Error("Please enter your name.");
+  currentUserName=clean;
+  currentUserKey=key;
+  localStorage.setItem("mm_user_name",clean);
+  // Each named profile gets its own stable client id. Existing anonymous data can be
+  // associated with the first name used on this browser by the migration below.
+  let savedMap=JSON.parse(localStorage.getItem("mm_user_devices")||"{}");
+  if(!savedMap[key]) savedMap[key]=crypto.randomUUID();
+  deviceId=savedMap[key];
+  localStorage.setItem("mm_user_devices",JSON.stringify(savedMap));
+  localStorage.setItem("mm_device_id",deviceId);
+  document.getElementById("loginScreen").style.display="none";
+  const label=document.getElementById("currentUserLabel"); if(label) label.textContent=currentUserName;
+  await load();
+}
+
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const err=document.getElementById("loginError");
+  err.textContent="";
+  try{await loginAs(document.getElementById("loginName").value)}
+  catch(ex){err.textContent=ex.message||"Unable to continue."}
+});
+
+function showLogin(){
+  document.getElementById("loginScreen").style.display="flex";
+  document.getElementById("loginName").value=currentUserName;
+  setTimeout(()=>document.getElementById("loginName").focus(),50);
+}
+
+function logout(){
+  currentUserName="";
+  currentUserKey="";
+  localStorage.removeItem("mm_user_name");
+  showLogin();
+}
 
 async function load(){
 try{
@@ -271,7 +341,11 @@ function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<di
 function renderSettings(){goalCal.value=settings.calories;goalPro.value=settings.protein;goalWeight.value=settings.weightGoal||""}
 function exportData(){const blob=new Blob([JSON.stringify({foods,meals,workouts,weights,settings},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meat-muscle-backup.json";a.click();URL.revokeObjectURL(a.href)}
 async function importData(e){const file=e.target.files[0];if(!file)return;const d=JSON.parse(await file.text());for(const f of d.foods||[])await insert("mm_foods",f);toast("Backup imported. Refreshing…");setTimeout(()=>location.reload(),800)}
-load();
+if(currentUserKey){
+  document.getElementById("loginScreen").style.display="none";
+  const label=document.getElementById("currentUserLabel"); if(label) label.textContent=displayName(currentUserName);
+  load();
+}else showLogin();
 </script>
 </body>
 </html>
