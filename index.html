@@ -40,7 +40,7 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
     <h1>🥩 Meat & Muscle</h1>
-    <p>Enter your name to access your tracker. Capitalization doesn't matter — <b>Leif</b> and <b>leif</b> use the same profile.</p>
+    <p>Enter your name to access your tracker.</p>
     <form id="loginForm" class="form">
       <input id="loginName" autocomplete="name" maxlength="40" placeholder="Enter your name" required>
       <button class="btn primary" type="submit">Continue</button>
@@ -120,7 +120,7 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 const SUPABASE_URL="https://quhmjimnoojjgxovivsh.supabase.co";
 const SUPABASE_KEY="sb_publishable_4R7T-q9Y6w5Ni7sCAJRyCA_NVel8sUu";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let deviceId=localStorage.getItem("mm_device_id"); if(!deviceId){deviceId=crypto.randomUUID();localStorage.setItem("mm_device_id",deviceId)}
+let deviceId=null;
 let currentUserName=(localStorage.getItem("mm_user_name")||"").trim();
 let currentUserKey=currentUserName.toLowerCase();
 
@@ -156,28 +156,36 @@ function displayName(name){return String(name||"").trim().replace(/\s+/g," ")}
 async function loginAs(name){
   const clean=displayName(name), key=normalizeUserName(clean);
   if(!key) throw new Error("Please enter your name.");
-  currentUserName=clean;
-  currentUserKey=key;
-  localStorage.setItem("mm_user_name",clean);
-  // Each named profile gets its own stable client id. Existing anonymous data can be
-  // associated with the first name used on this browser by the migration below.
-  let savedMap=JSON.parse(localStorage.getItem("mm_user_devices")||"{}");
-  if(!savedMap[key]) savedMap[key]=crypto.randomUUID();
-  deviceId=savedMap[key];
-  localStorage.setItem("mm_user_devices",JSON.stringify(savedMap));
-  localStorage.setItem("mm_device_id",deviceId);
+
+  // Usernames are normalized so Leif / leif / LEIF all map to one profile.
+  const {data,error}=await sb.from("mm_users")
+    .select("user_key,display_name")
+    .eq("user_key",key)
+    .maybeSingle();
+  if(error) throw error;
+
+  if(data){
+    currentUserName=data.display_name;
+    currentUserKey=data.user_key;
+  }else{
+    const {data:created,error:createError}=await sb.from("mm_users")
+      .insert({user_key:key,display_name:clean})
+      .select("user_key,display_name")
+      .single();
+    if(createError) throw createError;
+    currentUserName=created.display_name;
+    currentUserKey=created.user_key;
+  }
+
+  // The username key itself is now the shared cross-device profile identifier.
+  deviceId=currentUserKey;
+  localStorage.setItem("mm_user_name",currentUserName);
+  localStorage.setItem("mm_user_key",currentUserKey);
+
   document.getElementById("loginScreen").style.display="none";
   const label=document.getElementById("currentUserLabel"); if(label) label.textContent=currentUserName;
   await load();
 }
-
-document.getElementById("loginForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const err=document.getElementById("loginError");
-  err.textContent="";
-  try{await loginAs(document.getElementById("loginName").value)}
-  catch(ex){err.textContent=ex.message||"Unable to continue."}
-});
 
 function showLogin(){
   document.getElementById("loginScreen").style.display="flex";
@@ -189,6 +197,7 @@ function logout(){
   currentUserName="";
   currentUserKey="";
   localStorage.removeItem("mm_user_name");
+  localStorage.removeItem("mm_user_key");
   showLogin();
 }
 
@@ -341,7 +350,9 @@ function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<di
 function renderSettings(){goalCal.value=settings.calories;goalPro.value=settings.protein;goalWeight.value=settings.weightGoal||""}
 function exportData(){const blob=new Blob([JSON.stringify({foods,meals,workouts,weights,settings},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meat-muscle-backup.json";a.click();URL.revokeObjectURL(a.href)}
 async function importData(e){const file=e.target.files[0];if(!file)return;const d=JSON.parse(await file.text());for(const f of d.foods||[])await insert("mm_foods",f);toast("Backup imported. Refreshing…");setTimeout(()=>location.reload(),800)}
+currentUserKey=normalizeUserName(localStorage.getItem("mm_user_key")||currentUserName);
 if(currentUserKey){
+  deviceId=currentUserKey;
   document.getElementById("loginScreen").style.display="none";
   const label=document.getElementById("currentUserLabel"); if(label) label.textContent=displayName(currentUserName);
   load();
