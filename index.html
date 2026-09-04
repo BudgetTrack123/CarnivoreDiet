@@ -9,7 +9,7 @@
 :root{--bg:#0f1115;--panel:#181b21;--panel2:#20242c;--text:#f4f5f7;--muted:#a8adb8;--accent:#f59e0b;--accent2:#22c55e;--danger:#ef4444;--border:#2d333d}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
 button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{max-width:1200px;margin:auto;padding:22px}
-header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}.brand{font-size:24px;font-weight:800}.brand span{color:var(--accent)}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}.brand{font-size:24px;font-weight:800}.profile-area{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}.profile-greeting{font-size:15px;font-weight:700;color:var(--text)}.brand span{color:var(--accent)}
 nav{display:flex;gap:7px;overflow:auto;padding-bottom:4px}nav button,.btn{background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;border:1px solid var(--border)}nav button.active,.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:17px}.stat{font-size:28px;font-weight:800;margin-top:5px}.label,.muted{color:var(--muted);font-size:13px}
 .progress{height:9px;background:#303640;border-radius:20px;overflow:hidden;margin-top:12px}.progress i{display:block;height:100%;background:var(--accent);width:0}
@@ -26,7 +26,7 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 .btn.ai{background:#20242c;border-color:#4a5260;color:var(--text)}
 .btn.ai:disabled{opacity:.55;cursor:not-allowed}
 .hidden{display:none!important}.toast{position:fixed;right:20px;bottom:20px;background:#252a32;padding:12px 16px;border-radius:10px;border:1px solid var(--border);display:none;z-index:10}
-@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid,.formgrid.three{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid,.formgrid.three{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:row}.profile-area{align-items:flex-end;text-align:right}}
 @media(max-width:480px){.grid{grid-template-columns:1fr 1fr}.app{padding:14px}.stat{font-size:22px}}
 
 .login-screen{position:fixed;inset:0;background:#090b0f;display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
@@ -50,7 +50,7 @@ label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textar
 </div>
 
 <div class="app">
-<header><div class="brand">MEAT <span>&</span> MUSCLE</div><div class="muted" id="syncStatus">Connecting…</div></header>
+<header><div class="brand">MEAT <span>&</span> MUSCLE</div><div class="profile-area"><div class="profile-greeting" id="userGreeting">Hi —</div><div class="muted" id="syncStatus">Connecting…</div></div></header>
 <nav id="nav">
 <button class="active" data-page="dashboard">Dashboard</button><button data-page="meals">Meals</button><button data-page="foods">Foods</button><button data-page="gym">Gym</button><button data-page="progress">Progress</button><button data-page="settings">Settings</button>
 </nav>
@@ -184,6 +184,7 @@ async function loginAs(name){
 
   document.getElementById("loginScreen").style.display="none";
   const label=document.getElementById("currentUserLabel"); if(label) label.textContent=currentUserName;
+  const greeting=document.getElementById("userGreeting"); if(greeting) greeting.textContent="Hi "+currentUserName;
   await load();
 }
 
@@ -219,6 +220,7 @@ function logout(){
   currentUserKey="";
   localStorage.removeItem("mm_user_name");
   localStorage.removeItem("mm_user_key");
+  const greeting=document.getElementById("userGreeting"); if(greeting) greeting.textContent="Hi —";
   showLogin();
 }
 
@@ -447,6 +449,7 @@ if(currentUserKey){
   deviceId=currentUserKey;
   document.getElementById("loginScreen").style.display="none";
   const label=document.getElementById("currentUserLabel"); if(label) label.textContent=displayName(currentUserName);
+  const greeting=document.getElementById("userGreeting"); if(greeting) greeting.textContent="Hi "+displayName(currentUserName);
   load();
 }else showLogin();
 </script>
