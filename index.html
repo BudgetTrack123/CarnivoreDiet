@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meat & Muscle — Nutrition + Gym Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0f1115;--panel:#181b21;--panel2:#20242c;--text:#f4f5f7;--muted:#a8adb8;--accent:#f59e0b;--accent2:#22c55e;--danger:#ef4444;--border:#2d333d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.app{max-width:1200px;margin:auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}.brand{font-size:24px;font-weight:800}.brand span{color:var(--accent)}
+nav{display:flex;gap:7px;overflow:auto;padding-bottom:4px}nav button,.btn{background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;border:1px solid var(--border)}nav button.active,.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:17px}.stat{font-size:28px;font-weight:800;margin-top:5px}.label,.muted{color:var(--muted);font-size:13px}
+.progress{height:9px;background:#303640;border-radius:20px;overflow:hidden;margin-top:12px}.progress i{display:block;height:100%;background:var(--accent);width:0}
+.section{margin-top:18px}.section h2{font-size:18px;margin:0 0 12px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.list{display:grid;gap:9px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--panel2);border-radius:11px}.pill{padding:4px 8px;border-radius:99px;background:#303640;color:#d8dbe1;font-size:12px}
+.form{display:grid;gap:10px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.formgrid.three{grid-template-columns:repeat(3,1fr)}
+label{font-size:12px;color:var(--muted);display:grid;gap:5px}input,select,textarea{width:100%;background:#101319;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px}textarea{min-height:80px;resize:vertical}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.danger{background:transparent;color:#ff7777;border:1px solid #663033}.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px}
+.exercise{cursor:pointer}.exercise:hover{border-color:#596170}.exercise h3{margin:0 0 5px}.exercise p{margin:0;color:var(--muted);font-size:13px}
+.hidden{display:none!important}.toast{position:fixed;right:20px;bottom:20px;background:#252a32;padding:12px 16px;border-radius:10px;border:1px solid var(--border);display:none;z-index:10}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid,.formgrid.three{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+@media(max-width:480px){.grid{grid-template-columns:1fr 1fr}.app{padding:14px}.stat{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand">MEAT <span>&</span> MUSCLE</div><div class="muted" id="syncStatus">Connecting…</div></header>
+<nav id="nav">
+<button class="active" data-page="dashboard">Dashboard</button><button data-page="meals">Meals</button><button data-page="foods">Foods</button><button data-page="gym">Gym</button><button data-page="progress">Progress</button><button data-page="settings">Settings</button>
+</nav>
+
+<main id="dashboard" class="page">
+<div class="section"><h2>Today</h2><div class="grid">
+<div class="card"><div class="label">Calories</div><div class="stat" id="dCal">0</div><div class="muted" id="dCalGoal">/ 2,200 kcal</div><div class="progress"><i id="dCalBar"></i></div></div>
+<div class="card"><div class="label">Protein</div><div class="stat" id="dProtein">0g</div><div class="muted" id="dProteinGoal">/ 160g</div><div class="progress"><i id="dProteinBar"></i></div></div>
+<div class="card"><div class="label">Fat</div><div class="stat" id="dFat">0g</div><div class="muted">today</div></div>
+<div class="card"><div class="label">Carbs</div><div class="stat" id="dCarbs">0g</div><div class="muted">today</div></div>
+</div></div>
+<div class="section two">
+<div class="card"><h2>Today's meals</h2><div id="todayMeals" class="list"></div><br><button class="btn primary" onclick="showPage('meals')">+ Log a meal</button></div>
+<div class="card"><h2>Workout</h2><div id="todayWorkout"></div><br><button class="btn primary" onclick="showPage('gym')">+ Log workout</button></div>
+</div>
+</main>
+
+<main id="meals" class="page hidden">
+<div class="section two"><div class="card"><h2>Log meal</h2>
+<form id="mealForm" class="form"><div class="formgrid"><label>Date<input type="date" id="mealDate" required></label><label>Meal<select id="mealType"><option>Meal 1</option><option>Meal 2</option><option>Snack</option></select></label></div>
+<label>Food<select id="mealFood"></select></label><div class="formgrid"><label>Quantity<input type="number" id="mealQty" min=".1" step=".1" value="1"></label><label>Weight (g, optional)<input type="number" id="mealGrams" min="0" step="1" placeholder="e.g. 250"></label></div>
+<button class="btn primary">Save meal</button></form>
+<p class="muted">For steaks with unknown weight, use quantity and leave grams blank. You can edit the food later when you know its weight.</p></div>
+<div class="card"><h2>Recent meals</h2><div id="mealHistory" class="list"></div></div></div>
+</main>
+
+<main id="foods" class="page hidden">
+<div class="section two"><div class="card"><h2>Add food</h2><form id="foodForm" class="form">
+<label>Name<input id="foodName" required placeholder="Ribeye Steak"></label><div class="formgrid"><label>Calories / 100g<input type="number" id="fCal" required></label><label>Protein / 100g<input type="number" id="fPro" required></label></div>
+<div class="formgrid three"><label>Fat / 100g<input type="number" id="fFat" required></label><label>Carbs / 100g<input type="number" id="fCarb" value="0"></label><label>Cost / serving<input type="number" id="fCost" value="0" step=".01"></label></div>
+<label>Serving description<input id="fServing" placeholder="100g"></label><button class="btn primary">Save food</button></form></div>
+<div class="card"><h2>Your food library</h2><div id="foodList" class="list"></div></div></div>
+</main>
+
+<main id="gym" class="page hidden">
+<div class="section two"><div class="card"><h2>Exercise library</h2><input id="exerciseSearch" placeholder="Search machines or exercises…" oninput="renderExercises()"><br><br><div id="exerciseList" class="list"></div></div>
+<div class="card"><h2>Log workout</h2><form id="workoutForm" class="form"><label>Date<input type="date" id="workoutDate" required></label><label>Exercise<select id="workoutExercise"></select></label><div class="formgrid three"><label>Sets<input type="number" id="wSets" value="3" min="1"></label><label>Reps<input type="number" id="wReps" value="10" min="1"></label><label>Weight (kg)<input type="number" id="wWeight" value="0" min="0" step=".5"></label></div><button class="btn primary">Save workout</button></form><br><div id="workoutHistory" class="list"></div></div></div>
+</main>
+
+<main id="progress" class="page hidden"><div class="section two"><div class="card"><h2>Log body weight</h2><form id="weightForm" class="form"><label>Date<input type="date" id="weightDate" required></label><label>Weight (kg)<input type="number" id="bodyWeight" step=".1" required></label><button class="btn primary">Save weight</button></form></div><div class="card"><h2>Weight history</h2><div id="weightHistory" class="list"></div></div></div></main>
+
+<main id="settings" class="page hidden"><div class="section card"><h2>Goals & preferences</h2><form id="settingsForm" class="form"><div class="formgrid three"><label>Calories / day<input type="number" id="goalCal" min="1"></label><label>Protein / day (g)<input type="number" id="goalPro" min="1"></label><label>Weight goal (kg)<input type="number" id="goalWeight" step=".1"></label></div><button class="btn primary">Save settings</button></form><br><button class="btn" onclick="exportData()">Export backup</button> <button class="btn" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)"></div></main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const SUPABASE_URL="https://quhmjimnoojjgxovivsh.supabase.co";
+const SUPABASE_KEY="sb_publishable_4R7T-q9Y6w5Ni7sCAJRyCA_NVel8sUu";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let deviceId=localStorage.getItem("mm_device_id");
+if(!deviceId){deviceId=crypto.randomUUID();localStorage.setItem("mm_device_id",deviceId)}
+const today=()=>new Date().toISOString().slice(0,10);
+let foods=[],meals=[],workouts=[],weights=[],settings={calories:2200,protein:160,weightGoal:""};
+
+const seedFoods=[
+["Ribeye Steak",291,24.9,21.8,0,125,"100g"],
+["T-Bone Steak",247,24.1,16.9,0,125,"100g"],
+["Whole Egg",143,12.6,9.5,0.7,8,"1 large egg"],
+["Cooked White Rice",130,2.7,0.3,28.2,12,"100g"],
+["Butter",717,0.9,81.1,0.1,5,"10g"],
+["Chicken Breast",165,31,3.6,0,60,"100g"],
+["Ground Beef",254,26,17,0,80,"100g"]
+];
+const exercises=[
+["Leg Press","Legs","Quads, glutes, hamstrings","Set the seat so your knees are comfortable. Place feet shoulder-width apart, lower under control, then press without locking the knees.","Don't let your lower back round. Start light and learn the movement."],
+["Calf Extension / Calf Press","Calves","Gastrocnemius, soleus","Place the balls of your feet on the platform, keep knees stable, lower your heels, then push through the toes.","Use a controlled full range; don't bounce."],
+["Leg Extension","Legs","Quadriceps","Align the machine pivot with your knee. Set the pad above your ankles, extend the legs smoothly, then lower.","Avoid swinging the weight."],
+["Leg Curl","Legs","Hamstrings","Align your knee with the machine pivot, set the pad comfortably, curl your heels toward you, then return slowly.","Keep your hips down and avoid jerking."],
+["Chest Press","Chest","Chest, triceps, front delts","Adjust the seat so handles are around mid-chest. Press forward, then return with control.","Don't shrug your shoulders or slam the stack."],
+["Lat Pulldown","Back","Lats, biceps","Sit securely, grip the bar, pull toward the upper chest while keeping your torso stable, then slowly extend.","Don't swing backward to move the weight."],
+["Seated Row","Back","Mid-back, lats, biceps","Set the seat so you can reach the handles with a neutral spine. Pull toward your torso and squeeze your shoulder blades.","Don't round your back or use momentum."],
+["Shoulder Press","Shoulders","Delts, triceps","Adjust the seat so handles start around shoulder height. Press upward without shrugging, then lower slowly.","Start conservatively; don't force painful range."],
+["Pec Deck","Chest","Chest","Set the seat so handles are around chest level. Bring the pads/handles together smoothly and return under control.","Keep shoulders down and avoid overstretching."],
+["Biceps Curl","Arms","Biceps","Adjust the pad/seat so your elbows are supported. Curl smoothly and lower fully under control.","Don't lift your shoulders or swing."],
+["Triceps Pushdown","Arms","Triceps","Stand tall, elbows close to your sides. Push the handle down and return slowly without moving the elbows.","Avoid leaning your body over the cable."],
+["Treadmill","Cardio","Cardiovascular fitness, legs","Start at a comfortable speed, hold the rails only for setup if needed, and gradually increase pace.","Use the safety clip and don't jump off a moving belt."]
+];
+
+function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2200)}
+function showPage(p){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(p).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===p));renderAll()}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+document.getElementById("mealDate").value=today();document.getElementById("workoutDate").value=today();document.getElementById("weightDate").value=today();
+
+async function load(){
+try{
+const [f,m,w,wt,s]=await Promise.all([
+sb.from("mm_foods").select("*").eq("device_id",deviceId),
+sb.from("mm_meals").select("*").eq("device_id",deviceId).order("meal_date",{ascending:false}),
+sb.from("mm_workouts").select("*").eq("device_id",deviceId).order("workout_date",{ascending:false}),
+sb.from("mm_weights").select("*").eq("device_id",deviceId).order("weight_date",{ascending:false}),
+sb.from("mm_settings").select("*").eq("device_id",deviceId).maybeSingle()
+]);
+if(f.error||m.error||w.error||wt.error||s.error) throw (f.error||m.error||w.error||wt.error||s.error);
+foods=f.data||[];meals=m.data||[];workouts=w.data||[];weights=wt.data||[];
+if(!foods.length){for(const x of seedFoods){await sb.from("mm_foods").insert({device_id:deviceId,name:x[0],calories:x[1],protein:x[2],fat:x[3],carbs:x[4],cost:x[5],serving:x[6]})};const r=await sb.from("mm_foods").select("*").eq("device_id",deviceId);foods=r.data||[]}
+if(s.data) settings={calories:s.data.calories||2200,protein:s.data.protein||160,weightGoal:s.data.weight_goal||""};
+document.getElementById("syncStatus").textContent="☁ Synced";renderAll();
+}catch(e){document.getElementById("syncStatus").textContent="⚠ Setup needed";console.error(e);toast("Supabase tables are not set up yet")}
+}
+async function insert(table,obj){const {data,error}=await sb.from(table).insert({...obj,device_id:deviceId}).select().single();if(error){toast(error.message);throw error}return data}
+
+document.getElementById("foodForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_foods",{name:foodName.value,calories:+fCal.value,protein:+fPro.value,fat:+fFat.value,carbs:+fCarb.value||0,cost:+fCost.value||0,serving:fServing.value||"100g"});foods.unshift(d);e.target.reset();fCarb.value=0;fCost.value=0;renderAll();toast("Food saved")};
+document.getElementById("mealForm").onsubmit=async e=>{e.preventDefault();const f=foods.find(x=>x.id===mealFood.value);if(!f)return;const grams=+mealGrams.value;const qty=+mealQty.value||1;let mult=grams?grams/100:qty;const d=await insert("mm_meals",{meal_date:mealDate.value,meal_type:mealType.value,food_id:f.id,food_name:f.name,quantity:qty,grams:grams||null,calories:+(f.calories*mult).toFixed(1),protein:+(f.protein*mult).toFixed(1),fat:+(f.fat*mult).toFixed(1),carbs:+(f.carbs*mult).toFixed(1),cost:+(f.cost*mult).toFixed(2)});meals.unshift(d);renderAll();toast("Meal saved")};
+document.getElementById("workoutForm").onsubmit=async e=>{e.preventDefault();const ex=workoutExercise.value;const d=await insert("mm_workouts",{workout_date:workoutDate.value,exercise:ex,sets:+wSets.value,reps:+wReps.value,weight:+wWeight.value||0});workouts.unshift(d);renderAll();toast("Workout saved")};
+document.getElementById("weightForm").onsubmit=async e=>{e.preventDefault();const d=await insert("mm_weights",{weight_date:weightDate.value,weight:+bodyWeight.value});weights.unshift(d);renderAll();toast("Weight saved")};
+document.getElementById("settingsForm").onsubmit=async e=>{e.preventDefault();settings={calories:+goalCal.value,protein:+goalPro.value,weightGoal:+goalWeight.value||""};const {error}=await sb.from("mm_settings").upsert({device_id:deviceId,calories:settings.calories,protein:settings.protein,weight_goal:settings.weightGoal});if(error)toast(error.message);else toast("Settings saved");renderAll()};
+
+function renderAll(){renderDashboard();renderFoods();renderMeals();renderExercises();renderWorkouts();renderWeights();renderSettings()}
+function renderDashboard(){const ms=meals.filter(x=>x.meal_date===today());const sums=ms.reduce((a,x)=>(a.cal+=+x.calories||0,a.pro+=+x.protein||0,a.fat+=+x.fat||0,a.carb+=+x.carbs||0,a),{cal:0,pro:0,fat:0,carb:0});dCal.textContent=Math.round(sums.cal);dProtein.textContent=Math.round(sums.pro)+"g";dFat.textContent=Math.round(sums.fat)+"g";dCarbs.textContent=Math.round(sums.carb)+"g";dCalGoal.textContent="/ "+settings.calories+" kcal";dProteinGoal.textContent="/ "+settings.protein+"g";dCalBar.style.width=Math.min(100,sums.cal/settings.calories*100)+"%";dProteinBar.style.width=Math.min(100,sums.pro/settings.protein*100)+"%";todayMeals.innerHTML=ms.length?ms.map(x=>`<div class="row"><span>${x.meal_type}: ${x.food_name} × ${x.grams?x.grams+"g":x.quantity}</span><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join(""):'<div class="empty">No meals logged today.</div>';const ws=workouts.filter(x=>x.workout_date===today());todayWorkout.innerHTML=ws.length?ws.map(x=>`<div class="row"><span>${x.exercise}</span><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join(""):'<div class="empty">No workout logged today.</div>'}
+function renderFoods(){mealFood.innerHTML=foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join("");foodList.innerHTML=foods.length?foods.map(f=>`<div class="row"><div><b>${f.name}</b><div class="muted">${f.calories} kcal · ${f.protein}g protein · ${f.fat}g fat / 100g</div></div><span class="pill">₱${f.cost}</span></div>`).join(""):'<div class="empty">No foods yet.</div>'}
+function renderMeals(){mealHistory.innerHTML=meals.slice(0,30).map(x=>`<div class="row"><div><b>${x.food_name}</b><div class="muted">${x.meal_date} · ${x.meal_type} · ${x.grams?x.grams+"g":"×"+x.quantity}</div></div><span class="pill">${Math.round(x.calories)} kcal</span></div>`).join("")||'<div class="empty">No meals yet.</div>'}
+function renderExercises(){const q=(exerciseSearch.value||"").toLowerCase();const arr=exercises.filter(x=>x.join(" ").toLowerCase().includes(q));exerciseList.innerHTML=arr.map(x=>`<div class="card exercise" onclick="alert('${x[0]}\\n\\nWorks: ${x[2]}\\n\\nHow to use:\\n${x[3]}\\n\\nTip:\\n${x[4]}')"><h3>${x[0]}</h3><p>${x[1]} · ${x[2]}</p></div>`).join("");workoutExercise.innerHTML=exercises.map(x=>`<option>${x[0]}</option>`).join("")}
+function renderWorkouts(){workoutHistory.innerHTML=workouts.slice(0,30).map(x=>`<div class="row"><div><b>${x.exercise}</b><div class="muted">${x.workout_date}</div></div><span class="pill">${x.sets} × ${x.reps} @ ${x.weight}kg</span></div>`).join("")||'<div class="empty">No workouts yet.</div>'}
+function renderWeights(){weightHistory.innerHTML=weights.slice(0,30).map(x=>`<div class="row"><span>${x.weight_date}</span><b>${x.weight} kg</b></div>`).join("")||'<div class="empty">No weight entries yet.</div>'}
+function renderSettings(){goalCal.value=settings.calories;goalPro.value=settings.protein;goalWeight.value=settings.weightGoal||""}
+function exportData(){const blob=new Blob([JSON.stringify({foods,meals,workouts,weights,settings},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="meat-muscle-backup.json";a.click();URL.revokeObjectURL(a.href)}
+async function importData(e){const file=e.target.files[0];if(!file)return;const d=JSON.parse(await file.text());for(const f of d.foods||[])await insert("mm_foods",f);toast("Backup imported. Refreshing…");setTimeout(()=>location.reload(),800)}
+load();
+</script>
+</body>
+</html>
